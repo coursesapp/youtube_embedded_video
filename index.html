@@ -2,72 +2,217 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>YouTube Embed</title>
+  <title>Custom YouTube Player</title>
   <style>
-    body {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
+    html, body {
+      height: 100%;
+      width: 100%;
       margin: 0;
-      background: #000; /* Black background for focus */
+      padding: 0;
+      background: #000;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
     }
-    iframe {
-      border-radius: 12px; /* Rounded corners (optional) */
-      box-shadow: 0 0 20px rgba(0,0,0,0.5); /* Shadow (optional) */
+
+    #player {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    #controls {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      height: 80px;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 15px;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      padding: 10px 20px;
+      z-index: 100;
+    }
+
+    body:hover #controls {
+      opacity: 1;
+    }
+
+    button {
+      background: #222;
+      color: white;
+      border: none;
+      padding: 10px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: background 0.2s, transform 0.2s;
+    }
+
+    select {
+      background: #222;
+      color: white;
+      border: none;
+      padding: 10px 5px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: background 0.2s, transform 0.2s;
+    }
+
+    button:hover, select:hover {
+      background: #333;
+      transform: scale(1.05);
+    }
+
+    input[type=range] {
+      width: 200px;
+      -webkit-appearance: none;
+      height: 6px;
+      border-radius: 3px;
+      background: linear-gradient(to right, #ff0000 var(--value, 0%), #555 var(--value, 0%));
+      outline: none;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #ff0000;
+      cursor: pointer;
+    }
+
+    #timeDisplay {
+      color: white;
+      font-family: monospace;
+      font-size: 16px;
+      user-select: none;
+      min-width: 50px;
+      text-align: center;
     }
   </style>
 </head>
 <body>
-  <iframe 
-    id="player"
-    src="https://www.youtube.com/embed/Hs37d9wKtrE?controls=1&enablejsapi=1" 
-    frameborder="0" 
-    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-    >
+
+  <!-- YouTube iframe -->
+  <iframe id="player"
+    allow="autoplay; encrypted-media; picture-in-picture">
   </iframe>
 
+  <div id="controls">
+    <button id="playPauseBtn" onclick="togglePlay()">▶</button>
+    <button id="muteBtn" onclick="toggleMute()">🔇</button>
+
+    <select onchange="setSpeed(this.value)">
+      <option value="0.5">0.5x</option>
+      <option value="1" selected>1x</option>
+      <option value="1.5">1.5x</option>
+      <option value="2">2x</option>
+    </select>
+
+    <input type="range" id="progress" min="0" max="100" value="0">
+    <span id="timeDisplay">0:00 / 0:00</span>
+  </div>
+
   <script>
-      var player;
-      function onYouTubeIframeAPIReady() {
-        player = new YT.Player('player', {
-          events: {
-            'onReady': onPlayerReady,
-            'onStateChange': onPlayerStateChange
-          }
-        });
-      }
+    // --- Get video ID from URL ---
+    const params = new URLSearchParams(window.location.search);
+    const videoId = params.get('video');
 
-      function onPlayerReady() {
-        setInterval(function() {
-          if (player && player.getCurrentTime) {
-            var t = player.getCurrentTime();
-            var d = player.getDuration();
-            PlayerChannel.postMessage(t + "," + d);
-          }
-        }, 1000);
-      }
+    if (!videoId) {
+      alert("No video ID provided. Use ?video=YOUR_ID in the URL.");
+    }
 
-      function onPlayerStateChange(event) {
-        // Could send state info if needed
-      }
+    // Set iframe source dynamically
+    document.getElementById('player').src =
+      `https://www.youtube.com/embed/${videoId}?enablejsapi=1&controls=0`;
 
-      function sendCommand(command, args) {
-        var iframe = document.getElementById('player');
-        iframe.contentWindow.postMessage(JSON.stringify({
-          'event': 'command',
-          'func': command,
-          'args': args || []
-        }), '*');
-      }
+    // --- YouTube API integration ---
+    var player;
+    var isPlaying = false;
+    var isMuted = false;
 
-      function playVideo() { sendCommand('playVideo'); }
-      function pauseVideo() { sendCommand('pauseVideo'); }
-      function setSpeed(speed) { sendCommand('setPlaybackRate', [speed]); }
-      function seekTo(seconds) { sendCommand('seekTo', [seconds, true]); }
-      function mute() { sendCommand('mute'); }
-      function unMute() { sendCommand('unMute');  }
-    </script>
-    <script src="https://www.youtube.com/iframe_api"></script>
+    function onYouTubeIframeAPIReady() {
+      player = new YT.Player('player', {
+        events: {
+          'onReady': onPlayerReady,
+          'onStateChange': onPlayerStateChange
+        }
+      });
+    }
+
+    function onPlayerReady() {
+      setInterval(updateProgress, 1000);
+    }
+
+    function onPlayerStateChange(event) {
+      const playBtn = document.getElementById('playPauseBtn');
+      if (event.data === YT.PlayerState.PLAYING) {
+        playBtn.textContent = "⏸";
+        isPlaying = true;
+      } else if (event.data === YT.PlayerState.PAUSED || event.data === YT.PlayerState.ENDED) {
+        playBtn.textContent = "▶";
+        isPlaying = false;
+      }
+    }
+
+    function togglePlay() {
+      if (isPlaying) player.pauseVideo();
+      else player.playVideo();
+    }
+
+    function toggleMute() {
+      const muteBtn = document.getElementById('muteBtn');
+      if (isMuted) {
+        player.unMute();
+        muteBtn.textContent = "🔇";
+        isMuted = false;
+      } else {
+        player.mute();
+        muteBtn.textContent = "🔊";
+        isMuted = true;
+      }
+    }
+
+    function setSpeed(speed) {
+      player.setPlaybackRate(parseFloat(speed));
+    }
+
+    function updateProgress() {
+      if (player && player.getDuration) {
+        const current = player.getCurrentTime();
+        const duration = player.getDuration();
+        const percent = (current / duration) * 100;
+        const progressBar = document.getElementById('progress');
+        progressBar.value = percent;
+        progressBar.style.setProperty('--value', percent + '%');
+        document.getElementById('timeDisplay').textContent =
+          formatTime(current) + " / " + formatTime(duration);
+      }
+    }
+
+    function formatTime(sec) {
+      if (!sec || isNaN(sec)) return "0:00";
+      const h = Math.floor(sec / 3600);
+      const m = Math.floor((sec % 3600) / 60);
+      const s = Math.floor(sec % 60);
+      if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+      return `${m}:${s.toString().padStart(2, '0')}`;
+    }
+
+    document.getElementById('progress').addEventListener('input', function() {
+      const duration = player.getDuration();
+      const seekTime = (this.value / 100) * duration;
+      player.seekTo(seekTime, true);
+    });
+  </script>
+
+  <script src="https://www.youtube.com/iframe_api"></script>
 </body>
 </html>
