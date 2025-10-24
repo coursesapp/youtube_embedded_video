@@ -103,10 +103,24 @@
         min-width: 50px;
         text-align: center;
       }
+
+      .embed-container iframe,
+      .embed-container object,
+      .embed-container embed {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100% !important;
+        height: 100% !important;
+        pointer-events: inherit;
+      }
+
     </style>
   </head>
   <body>
-    <div id="player-container"></div>
+    <div class="embed-container">
+      <div id="player-container"></div>
+    </div>
 
     <!-- Overlay areas -->
     <div
@@ -194,6 +208,16 @@
 
       function onPlayerReady() {
         setInterval(updateProgress, 1000);
+
+        var ytFrame = document.getElementsByTagName('iframe')[0].contentWindow.document;
+          var fsButton = ytFrame.getElementsByClassName('ytp-fullscreen-button ytp-button')[0];
+          if(fsButton != null) {
+            var fsButtonCopy = fsButton.cloneNode(true);
+            fsButton.replaceWith(fsButtonCopy);
+            fsButtonCopy.onclick = function() {
+              sendMessage('FullscreenButtonPressed', '');
+            };
+          }
       }
 
       function onPlayerStateChange(event) {
