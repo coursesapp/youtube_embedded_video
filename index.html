@@ -33,14 +33,10 @@
         align-items: center;
         justify-content: center;
         gap: 15px;
-        opacity: 0;
+        opacity: 1;
         transition: opacity 0.3s ease;
         padding: 10px 20px;
         z-index: 100;
-      }
-
-      body:hover #controls {
-        opacity: 1;
       }
 
       button {
@@ -110,6 +106,7 @@
 
     <!-- Overlay areas -->
     <div
+      class="toggle-conrol"
       style="
         position: absolute;
         top: 0;
@@ -122,6 +119,7 @@
       "
     ></div>
     <div
+      class="toggle-conrol"
       style="
         position: absolute;
         bottom: 0;
@@ -172,7 +170,7 @@
       function onYouTubeIframeAPIReady() {
         player = new YT.Player("player-container", {
           videoId: videoId,
-          host: "https://www.youtube-nocookie.com", 
+          host: "https://www.youtube-nocookie.com",
           playerVars: {
             autoplay: 0,
             controls: 0,
@@ -194,16 +192,19 @@
 
       function onPlayerReady() {
         setInterval(updateProgress, 1000);
-        
-        var ytFrame = document.getElementsByTagName('iframe')[0].contentWindow.document;
-          var fsButton = ytFrame.getElementsByClassName('ytp-fullscreen-button ytp-button')[0];
-          if(fsButton != null) {
-            var fsButtonCopy = fsButton.cloneNode(true);
-            fsButton.replaceWith(fsButtonCopy);
-            fsButtonCopy.onclick = function() {
-              sendMessage('FullscreenButtonPressed', '');
-            };
-          }
+
+        var ytFrame =
+          document.getElementsByTagName("iframe")[0].contentWindow.document;
+        var fsButton = ytFrame.getElementsByClassName(
+          "ytp-fullscreen-button ytp-button"
+        )[0];
+        if (fsButton != null) {
+          var fsButtonCopy = fsButton.cloneNode(true);
+          fsButton.replaceWith(fsButtonCopy);
+          fsButtonCopy.onclick = function () {
+            sendMessage("FullscreenButtonPressed", "");
+          };
+        }
       }
 
       function onPlayerStateChange(event) {
@@ -274,6 +275,14 @@
           const seekTime = (this.value / 100) * duration;
           player.seekTo(seekTime, true);
         });
+
+      document.querySelectorAll(".toggle-conrol").forEach((el) => {
+        el.addEventListener("click", () => {
+          const controls = document.getElementById("controls");
+          const currentOpacity = window.getComputedStyle(controls).opacity;
+          controls.style.opacity = currentOpacity === "1" ? "0" : "1";
+        });
+      });
     </script>
   </body>
 </html>
