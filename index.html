@@ -99,6 +99,21 @@
         min-width: 50px;
         text-align: center;
       }
+
+      #watermark {
+        position: absolute;
+        bottom: 10px;
+        right: 15px;
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 16px;
+        font-weight: bold;
+        z-index: 99;
+        pointer-events: none;
+        user-select: none;
+        text-transform: uppercase;
+        text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7);
+      }
+
     </style>
   </head>
   <body>
@@ -131,6 +146,7 @@
         opacity: 0.001;
       "
     ></div>
+    <div id="watermark"></div>
 
     <!-- Controls -->
     <div id="controls">
@@ -152,6 +168,13 @@
       // Get video ID from URL
       const params = new URLSearchParams(window.location.search);
       const videoId = params.get("video");
+
+      const watermarkText = params.get("watermark");
+
+      if (watermarkText) {
+        const watermark = document.getElementById("watermark");
+        watermark.textContent = decodeURIComponent(watermarkText);
+      }
 
       if (!videoId) {
         alert("No video ID provided. Use ?video=YOUR_ID in the URL.");
