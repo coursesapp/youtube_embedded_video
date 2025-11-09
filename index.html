@@ -102,16 +102,15 @@
 
       #watermark {
         position: absolute;
-        top: 30%;
+        top: 50%;
         right: 50%;
-        color: rgba(255, 255, 255, 0.3);
+        color: rgba(255, 255, 255, 0.2);
         font-size: 36px;
         font-weight: bold;
         z-index: 99;
         pointer-events: none;
         user-select: none;
         text-transform: uppercase;
-        text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7);
       }
 
     </style>
@@ -158,6 +157,16 @@
         <option value="1" selected>1x</option>
         <option value="1.5">1.5x</option>
         <option value="2">2x</option>
+      </select>
+
+      <select id="qualitySelect" onchange="setQuality(this.value)">
+        <option value="auto" selected>Auto</option>
+        <option value="small">240p</option>
+        <option value="medium">360p</option>
+        <option value="large">480p</option>
+        <option value="hd720">720p</option>
+        <option value="hd1080">1080p</option>
+        <option value="highres">1080p+</option>
       </select>
 
       <input type="range" id="progress" min="0" max="100" value="0" />
@@ -264,6 +273,12 @@
 
       function setSpeed(speed) {
         player.setPlaybackRate(parseFloat(speed));
+      }
+
+      function setQuality(quality) {
+        if (player && player.setPlaybackQuality) {
+          player.setPlaybackQuality(quality);
+        }
       }
 
       function updateProgress() {
