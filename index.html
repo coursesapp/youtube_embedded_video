@@ -113,14 +113,17 @@
       #watermark {
         position: absolute;
         top: 50%;
-        right: 50%;
-        color: rgba(255, 255, 255, 0.2);
-        font-size: 36px;
-        font-weight: bold;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: rgba(255, 255, 255, 0.22);
+        font-family: system-ui, -apple-system, sans-serif;
+        font-size: 32px;
+        font-weight: 800;
         z-index: 99;
         pointer-events: none;
         user-select: none;
-        text-transform: uppercase;
+        white-space: nowrap;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
       }
 
     </style>
