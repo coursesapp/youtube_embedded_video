@@ -187,8 +187,8 @@
       // Get video ID from URL
       const params = new URLSearchParams(window.location.search);
       const videoId = params.get("video");
-
       const watermarkText = params.get("watermark");
+      const startSecs = parseFloat(params.get("start") || "0");
 
       if (watermarkText) {
         const watermark = document.getElementById("watermark");
@@ -223,6 +223,7 @@
             playsinline: 1,
             enablejsapi: 1,
             iv_load_policy: 1,
+            start: Math.floor(startSecs),
           },
           iframeAttrs: { playsinline: 1 },
           events: {
@@ -233,6 +234,10 @@
       }
 
       function onPlayerReady() {
+        if (startSecs > 0 && player && player.seekTo) {
+          player.seekTo(startSecs, true);
+        }
+
         setInterval(updateProgress, 1000);
 
         var ytFrame =
@@ -268,6 +273,14 @@
         else player.playVideo();
       }
 
+      function pauseVideo() {
+        if (player && typeof player.pauseVideo === 'function') player.pauseVideo();
+      }
+
+      function playVideo() {
+        if (player && typeof player.playVideo === 'function') player.playVideo();
+      }
+
       function toggleMute() {
         const muteBtn = document.getElementById("muteBtn");
         if (isMuted) {
@@ -301,6 +314,13 @@
           progressBar.style.setProperty("--value", percent + "%");
           document.getElementById("timeDisplay").textContent =
             formatTime(current) + " / " + formatTime(duration);
+
+          if (window.InVideoQuestionChannel) {
+            window.InVideoQuestionChannel.postMessage(JSON.stringify({
+              event: 'timeupdate',
+              seconds: current
+            }));
+          }
         }
       }
 
